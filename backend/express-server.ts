@@ -1,8 +1,15 @@
 import http from "http";
-import app from "./app";
+import { setTimeout } from "node:timers/promises";
+import express from "express";
+import fs from "fs";
+import { IUser } from "./types";
+import { body, validationResult } from "express-validator";
 
-const port = process.env.PORT || "3000";
+const app = express();
+
+const port = process.env.PORT || "3001";
 app.set("port", port);
+app.use(express.json());
 
 const errorHandler = (error: any) => {
   if (error.syscall !== "listen") {
@@ -23,6 +30,12 @@ const errorHandler = (error: any) => {
   }
 };
 
+let jsonData: IUser[] = [];
+fs.readFile("data.json", "utf-8", (err, data) => {
+  if (err) throw err;
+  jsonData = JSON.parse(data);
+});
+
 const server = http.createServer(app);
 
 server.on("error", errorHandler);
@@ -33,3 +46,34 @@ server.on("listening", () => {
 });
 
 server.listen(port);
+
+app.post(
+  "/search",
+  body("email").trim().isEmail().normalizeEmail(),
+  body("number")
+    .trim()
+    .isNumeric()
+    .withMessage("Only Decimals allowed")
+    .isLength({
+      min: 6,
+    })
+    .withMessage("The min length should be 6"),
+  async (request, response) => {
+    // await setTimeout(5000);
+    const { email: userEmail, number: userNumber } = request.body;
+    const errors = validationResult(request);
+    
+    if (errors.isEmpty()) {
+      const searchResult = jsonData.filter(
+        ({ email, number }: IUser) =>
+          email === userEmail && number === userNumber
+      );
+      return response.send(searchResult);
+    }
+
+    response.status(400).json({
+      success: false,
+      errors: errors.array(),
+    });
+  }
+);
