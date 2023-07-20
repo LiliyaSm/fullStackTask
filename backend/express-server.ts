@@ -4,12 +4,21 @@ import express from "express";
 import fs from "fs";
 import { IUser } from "./types";
 import { body, validationResult } from "express-validator";
+import cors from "cors";
+
+const clientURL = "http://localhost:3000";
 
 const app = express();
 
 const port = process.env.PORT || "3001";
 app.set("port", port);
 app.use(express.json());
+
+app.use(
+  cors({
+    origin: clientURL,
+  })
+);
 
 const errorHandler = (error: any) => {
   if (error.syscall !== "listen") {
@@ -52,8 +61,9 @@ app.post(
   body("email").trim().isEmail().normalizeEmail(),
   body("number")
     .trim()
+    .optional({ checkFalsy: true })
     .isNumeric()
-    .withMessage("Only Decimals allowed")
+    .withMessage("Only decimals allowed")
     .isLength({
       min: 6,
     })
@@ -62,7 +72,7 @@ app.post(
     // await setTimeout(5000);
     const { email: userEmail, number: userNumber } = request.body;
     const errors = validationResult(request);
-    
+
     if (errors.isEmpty()) {
       const searchResult = jsonData.filter(
         ({ email, number }: IUser) =>
