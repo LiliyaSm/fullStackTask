@@ -1,42 +1,75 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState } from "react";
 import { Button, TextField, Typography, Container, Box } from "@mui/material";
 import InputMask from "react-input-mask";
-// import { IMaskInput } from "react-imask";
-const server = "http://localhost:3001";
+import { IFormData, IError } from "../types";
+import UsersList from "./UsersList";
 
-const Form = () => {
-  const [email, setEmail] = useState("");
-  const [number, setNumber] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
+const server = "http://localhost:3001";
+const apiUrl = `${server}/search`;
+
+const Form = (): React.ReactElement => {
+  const [email, setEmail] = useState<string>("");
+  const [number, setNumber] = useState<string>("");
+  const [users, setUsers] = useState<IFormData[]>([]);
+  const [errors, setErrors] = useState<IError[]>([]);
+  const [cancelController, setCancelController] =
+    useState<AbortController | null>(null);
+
+  const isLoading = !!cancelController;
 
   const handleSubmit = async () => {
-    if (isLoading) return;
+    if (cancelController) cancelController.abort();
+    const controller = new AbortController();
+    setCancelController(controller);
+    const signal = controller.signal;
     setErrors([]);
-    setIsLoading(true);
-    const apiUrl = `${server}/search`;
+    setUsers([]);
+
+    let body: IFormData = { email };
+    if (number) {
+      //removing mask
+      body = { ...body, number: number.replace(/\D/g, "") };
+    }
 
     const requestOptions = {
+      signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, number: number.replace(/\D/g, '' )}),
+      body: JSON.stringify(body),
     };
 
     try {
-      console.log({ email, number });
       const response = await fetch(apiUrl, requestOptions);
       const data = await response.json();
-
-      if (data?.errors) {
-        console.log(data.errors);
+      if (response.status === 200) {
+        setUsers(data);
+      } else if (response.status === 400) {
         setErrors(data.errors);
       }
-      setIsLoading(false);
+      setCancelController(null);
     } catch (error: any) {
-      setIsLoading(false);
+      if (error.name !== "AbortError") setCancelController(null);
     }
+  };
+
+  const renderErrors = (): JSX.Element => {
+    if (errors.length)
+      return (
+        <ul>
+          {errors.map(({ path, msg }) => {
+            return (
+              <li key={path}>
+                <Typography sx={{ m: 1 }} color="error">
+                  {path}: {msg}
+                </Typography>
+              </li>
+            );
+          })}
+        </ul>
+      );
+    return <></>;
   };
 
   return (
@@ -44,11 +77,9 @@ const Form = () => {
       component="div"
       maxWidth="xs"
       sx={{
-        backgroundColor: "white",
-        borderRadius: "10px",
-        p: 2,
-        pb: 4,
-        mt: 18,
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
       }}
     >
       <Box
@@ -74,7 +105,6 @@ const Form = () => {
 
           <InputMask
             mask="99-99-99"
-            maskChar=" "
             value={number}
             onChange={(e) => setNumber(e.target.value)}
           >
@@ -96,18 +126,9 @@ const Form = () => {
             {isLoading ? "loading..." : "Submit"}
           </Button>
         </Box>
+        {renderErrors()}
+        <UsersList users={users} isDisplayingErrors={!!errors.length} />
       </Box>
-      <ul>
-        {errors.map(({ path, msg }) => {
-          return (
-            <li key={path}>
-              <Typography sx={{ m: 1 }} color="error">
-                {path}: {msg}
-              </Typography>
-            </li>
-          );
-        })}
-      </ul>
     </Container>
   );
 };

@@ -1,12 +1,13 @@
 import http from "http";
 import { setTimeout } from "node:timers/promises";
-import express from "express";
+import express, { Request, Response} from "express";
 import fs from "fs";
 import { IUser } from "./types";
 import { body, validationResult } from "express-validator";
 import cors from "cors";
 
 const clientURL = "http://localhost:3000";
+const RESPONSE_DELAY = 5000;
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(
   })
 );
 
-const errorHandler = (error: any) => {
+const errorHandler = (error: any): void => {
   if (error.syscall !== "listen") {
     throw error;
   }
@@ -68,16 +69,19 @@ app.post(
       min: 6,
     })
     .withMessage("The min length should be 6"),
-  async (request, response) => {
-    // await setTimeout(5000);
-    const { email: userEmail, number: userNumber } = request.body;
+  async (request: Request, response: Response) => {
+    await setTimeout(RESPONSE_DELAY);
+    const { email: userEmail, number: userNumber }: IUser = request.body;
     const errors = validationResult(request);
 
     if (errors.isEmpty()) {
-      const searchResult = jsonData.filter(
-        ({ email, number }: IUser) =>
-          email === userEmail && number === userNumber
-      );
+      const searchResult: IUser[] = jsonData.filter(({ email, number }: IUser) => {
+        if (userNumber !== undefined) {
+          return email === userEmail && number === userNumber;
+        } else {
+          return email === userEmail;
+        }
+      });
       return response.send(searchResult);
     }
 
