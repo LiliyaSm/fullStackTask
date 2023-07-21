@@ -1,11 +1,7 @@
-import fs from "fs";
+import { promises as fs } from "fs";
 import { IUser } from "./types.ts";
 
-export const getJsonData = (): IUser[] => {
-  let jsonData: IUser[] = [];
-  fs.readFile("src/data.json", "utf-8", (err, data) => {
-    if (err) throw err;
-    jsonData = JSON.parse(data);
-  });
-  return jsonData;
+export const getJsonData = async (): Promise<IUser[]> => {
+  const data = await fs.readFile("src/data.json", "utf-8");
+  return JSON.parse(data);
 };

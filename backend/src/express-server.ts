@@ -22,7 +22,7 @@ app.use(
   })
 );
 
-let jsonData: IUser[] = getJsonData();
+let jsonData: IUser[] = await getJsonData();
 
 app.post(
   "/search",
