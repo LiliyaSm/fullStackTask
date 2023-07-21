@@ -17,7 +17,8 @@ const Form = (): React.ReactElement => {
 
   const isLoading = !!cancelController;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (cancelController) cancelController.abort();
     const controller = new AbortController();
     setCancelController(controller);
@@ -84,25 +85,23 @@ const Form = (): React.ReactElement => {
     >
       <Box
         sx={{
-          marginTop: 2,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
         }}
       >
-        <Box sx={{ mt: 1 }}>
+        <Box component="form" onSubmit={handleSubmit}>
           <TextField
             margin="normal"
+            type="email"
             onChange={(e) => setEmail(e.target.value)}
             value={email}
             required
             fullWidth
             label="Email Address"
             name="email"
-            autoComplete="email"
             autoFocus
           />
-
           <InputMask
             mask="99-99-99"
             value={number}
@@ -113,7 +112,6 @@ const Form = (): React.ReactElement => {
               fullWidth
               name="number"
               label="Number"
-              autoComplete="number"
             />
           </InputMask>
           <Button
@@ -121,7 +119,6 @@ const Form = (): React.ReactElement => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
-            onClick={handleSubmit}
           >
             {isLoading ? "loading..." : "Submit"}
           </Button>
